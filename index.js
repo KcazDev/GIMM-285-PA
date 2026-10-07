@@ -10,13 +10,13 @@ const path = require('path');
 
 //Setup defaults for script
 const app = express();
-app.use(express.static('public'));
+app.use(express.static('Public'));
 //Stylesheet
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(__dirname + '/Public'));
 
 //Webpage
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'Public', 'index.html'));
 });
 
 const upload = multer();
