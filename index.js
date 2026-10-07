@@ -6,12 +6,24 @@ const multer = require('multer');
 const mysql = require('mysql2');
 const Anthropic = require('@anthropic-ai/sdk');
 const { check, validationResult } = require('express-validator');
+const path = require('path');
 
 //Setup defaults for script
 const app = express();
 app.use(express.static('public'));
+//Stylesheet
+app.use(express.static(__dirname + '/public'));
+
+//Webpage
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 const upload = multer();
 const port = 3000;
+
+
+
 
 //Database connection
 const connection = mysql.createConnection({
