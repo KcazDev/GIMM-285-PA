@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Construction Estimates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel='stylesheet' href='style.css'>
+</head>
+
+<body>
+    <h1>Construction Estimator</h1>
+    <hr />
+    <!--PA4-->
+    <!-- this section is the search form for the previous estimates, it has the same filters as the get request and also a sort and limit option -->
+    <h2>Search Previous Estimates</h2>
+    <div class="container">
+
+        <div class='row mb-3'>
+            <div class='col-md-2'>
+                <label>Project Name</label>
+            </div>
+            <div class='col-md-10'>
+                <input id='search_project_name' type='text' />
+            </div>
+        </div>
+
+        <div class='row mb-3'>
+            <div class='col-md-2'>
+                <label>Project Type</label>
+            </div>
+            <div class='col-md-10'>
+                <select id='search_project_type'>
+                    <option value=''>-- All Types --</option>
+                    <option value='Residential Home'>Residential Home</option>
+                    <option value='Commercial Building'>Commercial Building</option>
+                    <option value='Garage'>Garage</option>
+                    <option value='Warehouse'>Warehouse</option>
+                    <option value='Shed'>Shed</option>
+                    <option value='Addition'>Addition</option>
+                    <option value='Renovation'>Renovation</option>
+                </select>
+            </div>
+        </div>
+
+        <div class='row mb-3'>
+            <div class='col-md-2'>
+                <label>Location</label>
+            </div>
+            <div class='col-md-10'>
+                <input id='search_location' type='text' />
+            </div>
+        </div>
+
+        <div class='row mb-3'>
+            <div class='col-md-2'>
+                <label>Sort By Date</label>
+            </div>
+            <div class='col-md-10'>
+                <select id='sort'>
+                    <option value=''>-- No Sort --</option>
+                    <option value='ASC'>Oldest First</option>
+                    <option value='DESC'>Newest First</option>
+                </select>
+            </div>
+        </div>
+
+        <div class='row mb-3'>
+            <div class='col-md-2'>
+                <label>Limit Results</label>
+            </div>
+            <div class='col-md-10'>
+                <select id='limit'>
+                    <option value=''>-- No Limit --</option>
+                    <option value='1'>1</option>
+                    <option value='2'>2</option>
+                    <option value='3'>3</option>
+                    <option value='4'>4</option>
+                    <option value='5'>5</option>
+                </select>
+            </div>
+        </div>
+
+        <div class='row mb-3'>
+            <div class='col-md-12'>
+                <button id='search'>Search Estimates</button>
+                <button onclick="location.href='insert.html'">Generate New Estimate</button>
+            </div>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <div id='estimates' class='container'>
+        Previous estimates will appear here.
+    </div>
+
+    <script>
+        //Custom method for FETCH API functionality 
+        const fetchMethod = (url, fetchParameters, callback) => {
+            fetch(url, fetchParameters)
+                .then((response) => {
+                    return new Promise((resolve) => response.json()
+                        .then((json) => resolve({
+                            status: response.status,
+                            json,
+                        })
+                    ));
+                })
+                .then(({status, json}) => {
+                    callback(status, json);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        };
+
+        //this a function that helps check in an object has no value to it
+        const isEmpty = (obj) => Object.keys(obj).length === 0;
+
+        //Select statements for PA4
+        //this section listens for clicks on the search estimate button and builds the object with only the filter values used,
+        //it then converts to URLSearchParams and sends the GET request to the server, then builds a table with the results and adds it to the page
+        document.getElementById('search').addEventListener('click', (event) => {
+            const getParameters = {};
+
+            if (document.getElementById('search_project_name').value.length !== 0) {
+                getParameters.project_name = document.getElementById('search_project_name').value;
+            }
+            if (document.getElementById('search_project_type').value.length !== 0) {
+                getParameters.project_type = document.getElementById('search_project_type').value;
+            }
+            if (document.getElementById('search_location').value.length !== 0) {
+                getParameters.location = document.getElementById('search_location').value;
+            }
+            if (document.getElementById('sort').value.length !== 0) {
+                getParameters.sort = document.getElementById('sort').value;
+            }
+            if (document.getElementById('limit').value.length !== 0) {
+                getParameters.limit = document.getElementById('limit').value;
+            }
+
+            fetchMethod(
+                '/estimates/' + (!isEmpty(getParameters) ? '?' + new URLSearchParams(getParameters) : ''),
+                {method: 'GET'},
+                (status, json) => {
+                    if (200 === status) {
+                        let displayTable = '<table class="table table-bordered mt-3">' +
+                            '<thead class="table-dark">' +
+                            '<tr>' +
+                            '<th>Project Name</th>' +
+                            '<th>Project Type</th>' +
+                            '<th>Location</th>' +
+                            '<th>Material</th>' +
+                            '<th>Load Type</th>' +
+                            '<th>Cost/Unit</th>' +
+                            '<th>Date</th>' +
+                            '<th>Actions</th>' +
+                            '</tr>' +
+                            '</thead>' +
+                            '<tbody>';
+
+                        if (typeof json.data !== 'undefined') {
+                            for (row of json.data) {
+                                displayTable += '<tr>' +
+                                    '<td>' + row.project_name + '</td>' +
+                                    '<td>' + row.project_type + '</td>' +
+                                    '<td>' + row.location + '</td>' +
+                                    '<td>' + row.materials + '</td>' +
+                                    '<td>' + row.load_type + '</td>' +
+                                    '<td>$' + row.cost_per_unit + '</td>' +
+                                    '<td>' + row.created_at + '</td>' +
+                                    '<td>' +
+                                        '<button class="btn btn-primary btn-sm view-btn" data-project="' + row.project_name + '" data-estimate="' + encodeURIComponent(row.results) + '">View</button> ' +
+                                        '<button class="btn btn-warning btn-sm edit-btn" data-id="' + row.id + '">Edit</button>' +
+                                    '</td>' +
+                                    '</tr>';
+                            }
+                        }
+                        displayTable += '</tbody></table>';
+                        document.getElementById('estimates').innerHTML = displayTable;
+                    }
+                }
+            );
+        });
+
+        //listens for clicks inside the estimates div, then handles view modal or edit redirect
+        document.getElementById('estimates').addEventListener('click', (event) => {
+            if (event.target.classList.contains('view-btn')) {
+                const projectName = event.target.getAttribute('data-project');
+                const estimateText = decodeURIComponent(event.target.getAttribute('data-estimate'));
+
+                document.getElementById('modalTitle').textContent = projectName + ' - Full Estimate';
+                document.getElementById('modalEstimate').textContent = estimateText;
+
+                const modal = new bootstrap.Modal(document.getElementById('estimateModal'));
+                modal.show();
+            } else if (event.target.classList.contains('edit-btn')) {
+                const estimateId = event.target.getAttribute('data-id');
+                location.href = 'edit.html?id=' + estimateId;
+            }
+        });
+    </script>
+
+    <!-- Estimate Modal -->
+    <!-- this is the modal popup that shows the full estimate when you click the view button on an estimate, it uses bootstrap modal classes and is populated with javascript when you click the view button -->
+    <div class="modal fade" id="estimateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Estimate Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="modalEstimate"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
